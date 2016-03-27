@@ -7,6 +7,7 @@ echo "export MAGENTO_PROD_SSH_USER=$MAGENTO_PROD_SSH_USER" >> /etc/bash.bashrc
 echo "export MAGENTO_PROD_SSH_HOST=$MAGENTO_PROD_SSH_HOST" >> /etc/bash.bashrc
 echo "export MAGENTO_PROD_SSH_PORT=$MAGENTO_PROD_SSH_PORT" >> /etc/bash.bashrc
 echo "export MAGENTO_PROD_SSH_IDENTITY=$MAGENTO_PROD_SSH_IDENTITY" >> /etc/bash.bashrc
+echo "export MAGENTO_PROD_SSH_EMAIL=$MAGENTO_PROD_SSH_EMAIL" >> /etc/bash.bashrc
 echo "export MAGENTO_REPO_PUBLIC_KEY=$MAGENTO_REPO_PUBLIC_KEY" >> /etc/bash.bashrc
 echo "export MAGENTO_REPO_PRIVATE_KEY=$MAGENTO_REPO_PRIVATE_KEY" >> /etc/bash.bashrc
 

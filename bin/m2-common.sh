@@ -21,6 +21,9 @@ function checkEnvironmentVariablesSet () {
 	if [ "$MAGENTO_PROD_SSH_IDENTITY" == "" ]; then
 	    echo "Optional environment variable MAGENTO_PROD_SSH_IDENTITY is not set"
 	fi
+	if [ "$MAGENTO_PROD_SSH_EMAIL" == "" ]; then
+	    echo "Optional environment variable MAGENTO_PROD_SSH_EMAIL is not set"
+	fi
 	echo "Exiting with error status."
 	exit 1
     fi

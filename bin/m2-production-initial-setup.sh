@@ -3,11 +3,13 @@
 
 # Check environment variables are set up to connect to prodution server.
 if [ "$MAGENTO_PROD_SSH_HOST" == "" -o "$MAGENTO_PROD_SSH_USER" == "" ]; then
-    echo "This script uses 4 environment variables for connecting to the production host."
+    echo "This script uses the following environment variables."
+    echo ""
     echo "  MAGENTO_PROD_SSH_USER - username to connect with on production host"
     echo "  MAGENTO_PROD_SSH_HOST - hostname or IP address of production host"
-    echo "  MAGENTO_PROD_SSH_PORT - SSH port number to use if not 22"
-    echo "  MAGENTO_PROD_SSH_IDENTITY - SSH identity file if not ~/.ssh/id_rsa"
+    echo "  MAGENTO_PROD_SSH_PORT (optional) - SSH port number to use if not 22"
+    echo "  MAGENTO_PROD_SSH_IDENTITY (optional) - SSH identity file if not ~/.ssh/id_rsa"
+    echo "  MAGENTO_PROD_SSH_EMAIL (optional) - Email address for ssh key generation"
     echo ""
     echo "You must set at least the first two variables before running this script."
     echo "For example:"
@@ -20,11 +22,13 @@ fi
 # Generate a key if we don't have one already.
 if [ ! -f $HOME/.ssh/id_rsa.pub ]; then
     echo "==== No existing SSH key found, generating new key."
-    echo -n "Enter your email address: "
-    read EMAIL
-    ssh-keygen -t rsa -C "$EMAIL" -N "" -f $HOME/.ssh/id_rsa
+    if [ "$MAGENTO_PROD_SSH_EMAIL" == "" ]; then
+	echo -n "Enter your email address: "
+	read MAGENTO_PROD_SSH_EMAIL
+    fi
+    ssh-keygen -t rsa -C "$MAGENTO_PROD_SSH_EMAIL" -N "" -f $HOME/.ssh/id_rsa
     echo "Copying public key to production server."
-    cat $HOME/.ssh/id_rsa.pub | ssh -i $HOME/.ssh/id_rsa "${MAGENTO_PROD_SSH_USER}@${MAGENTO_PROD_SSH_HOST}" "mkdir -p ~/.ssh; cat >>~/.ssh/authorized_keys"
+    cat $HOME/.ssh/id_rsa.pub | ssh -oStrictHostKeyChecking=no -i $HOME/.ssh/id_rsa "${MAGENTO_PROD_SSH_USER}@${MAGENTO_PROD_SSH_HOST}" "mkdir -p ~/.ssh; cat >>~/.ssh/authorized_keys"
     if [ "$?" != "0" ]; then
 	echo "Failed to copy to production host, discarding generated key."
 	rm $HOME/.ssh/id_rsa $HOME/.ssh/id_rsa.pub
