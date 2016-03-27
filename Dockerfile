@@ -33,13 +33,11 @@ RUN apt-get update \
  && echo "memory_limit 2048M" > /usr/local/etc/php/php.ini 
 
 RUN useradd -m -s /bin/bash -p $(openssl passwd -1 ${MAGENTO_PASSWORD}) -G sudo ${MAGENTO_USER}
-ADD entrypoint.sh /entrypoint.sh
 RUN mkdir /magento2 \
  && chown magento:magento /magento2 \
  && cd /magento2 \
  && sed -i -e 's/www-data/magento/g' /etc/apache2/envvars \
  && sed -i -e 's/www-data/magento/g' /etc/apache2/apache2.conf \
- && chmod +x /entrypoint.sh \
  && sudo -u ${MAGENTO_USER} sh -c "echo 'export PATH=\${PATH}:/magento2/bin' >> /home/magento/.bashrc" \
  && sudo -u ${MAGENTO_USER} sh -c "echo 'PS1=m2$\ ' >> /home/magento/.bashrc" \
  && echo 'if [ $PPID == 0 ]; then exec sudo -u magento bash ; fi' >> /root/.bashrc
@@ -117,16 +115,18 @@ RUN curl -sL https://deb.nodesource.com/setup_4.x | bash - \
 
 ############ Install Gulp ########### 
 
-RUN mkdir /gulp \
+RUN mkdir -p /gulp \
  && cd /gulp \
  && curl -L -o /tmp/gulp.zip https://github.com/SnowdogApps/magento2-frontools/archive/master.zip \
- && unzip /tmp/gulp.zip 
-RUN cd /gulp && rm /tmp/gulp.zip 
-RUN cd /gulp && npm install -g gulp 
-RUN cd /gulp && npm install --save-dev gulp 
-RUN cd /gulp && npm install jshint gulp-less gulp-concat gulp-uglify gulp-rename gulp-livereload gulp-sourcemaps gulp-util notify-send --save-dev 
-RUN cd /gulp && npm install 
-RUN cd /gulp && chown -R magento:magento .
+ && unzip /tmp/gulp.zip \
+ && mv magento2-frontools-master/* . \
+ && rm -rf magento2-frontools-master \
+ && rm /tmp/gulp.zip \
+ && npm install -g gulp \
+ && npm install --save-dev gulp \
+ && npm install jshint gulp-less gulp-concat gulp-uglify gulp-rename gulp-livereload gulp-sourcemaps gulp-util notify-send --save-dev \
+ && npm install \
+ && chown -R magento:magento .
 EXPOSE 3000
 EXPOSE 3001
 
@@ -152,9 +152,11 @@ EXPOSE 135
 RUN echo "magento ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 # Add local shell scripts.
-ADD bin/* /usr/local/bin
+ADD bin/* /usr/local/bin/
+ADD entrypoint.sh /entrypoint.sh
 RUN chown magento:magento /usr/local/bin/m2* \
- && chmod +rx /usr/local/bin/m2*
+ && chmod +rx /usr/local/bin/m2* \
+ && chmod +x /entrypoint.sh
 
 WORKDIR /magento2
 ENV SHELL /bin/bash
