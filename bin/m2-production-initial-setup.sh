@@ -63,6 +63,7 @@ if [ "$?" == "1" ]; then
 	echo -n "Please enter your Magento repo public key: "
 	read MAGENTO_REPO_PRIVATE_KEY
     fi
+    mkdir -p ~/.composer
     echo "{
     \"http-basic\": {
         \"repo.magento.com\": {
@@ -71,7 +72,8 @@ if [ "$?" == "1" ]; then
         }
     }
 }
-" | runOnProd "mkdir -p ~/.composer; cat >~/.composer/auth.json"
+" > ~/.composer/auth.json
+    cat ~/.composer/auth.json | runOnProd "mkdir -p ~/.composer; cat >~/.composer/auth.json"
 fi
 
 # Bitnami currently is not using version from "composer create-project"
@@ -117,8 +119,8 @@ runOnProd "
     else
         echo ==== Committing Magento code to GIT.
 	git init
-	git config --global user.email bitnami@example.com
-	git config --global user.name bitnami
+	git config user.email $USER@example.com
+	git config user.name $USER
 	git add .
 	git commit -m \"Initial commit\"
     fi
