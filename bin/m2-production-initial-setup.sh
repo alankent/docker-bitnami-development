@@ -42,6 +42,10 @@ fi
 . /usr/local/bin/m2-common.sh
 
 
+# Make sure user is in group 'daemon' to avoid file permission issues.
+# Otherwise bin/magento will fail to run.
+runOnProd "sudo usermod -g daemon bitnami"
+
 # Set up the auth.json file if it does not exist.
 # We need 'composer install' to download 'vendor' directory for various
 # magento commands to work (like put store into maintenance mode).
@@ -59,9 +63,40 @@ if [ "$?" == "1" ]; then
 	echo -n "Please enter your Magento repo public key: "
 	read MAGENTO_REPO_PRIVATE_KEY
     fi
-    #echo "" \
-        #| runOnProd "cat >/opt/bitnami/apps/magento/htdocs/auth.json"
+    echo "{
+    \"http-basic\": {
+        \"repo.magento.com\": {
+            \"username\": \"$MAGENTO_REPO_PUBLIC_KEY\",
+            \"password\": \"$MAGENTO_REPO_PRIVATE_KEY\"
+        }
+    }
+}
+" | runOnProd "mkdir -p ~/.composer; cat >~/.composer/auth.json"
 fi
+
+# Bitnami currently is not using version from "composer create-project"
+# which means extensions won't be able to install. So if old style, save
+# away code and rebuild the site via composer.
+runOnProd "
+    if grep -q magento/module-backup /opt/bitnami/apps/magento/htdocs/composer.json ; then
+        echo ==== Magento not installed via Composer - re-installing.
+	set -x
+	sudo composer self-update
+        cd /opt/bitnami/apps/magento
+        sudo mv htdocs htdocs.bak
+        sudo mkdir htdocs
+	sudo chown bitnami:daemon htdocs
+        cd htdocs
+	echo Please be patient. The next step will take some time to complete.
+        composer create-project --no-progress --repository-url=https://repo.magento.com/ magento/project-community-edition .
+        cp ../htdocs.bak/app/etc/env.php app/etc
+        cp ../htdocs.bak/app/etc/config.php app/etc
+	sudo chown -R bitnami:daemon .
+	sudo chmod +x bin/magento
+	sudo chmod -R g+w var pub/static
+	sudo rm -rf var/{cache,generation,page_cache}/*
+    fi
+"
 
 # Install GIT if not already present.
 runOnProd "
@@ -82,6 +117,8 @@ runOnProd "
     else
         echo ==== Committing Magento code to GIT.
 	git init
+	git config --global user.email bitnami@example.com
+	git config --global user.name bitnami
 	git add .
 	git commit -m \"Initial commit\"
     fi
