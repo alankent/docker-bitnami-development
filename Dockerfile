@@ -163,3 +163,12 @@ ENV SHELL /bin/bash
 ENV PATH PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/magento2/bin
 
 ENTRYPOINT ["/entrypoint.sh"]
+
+
+# Add the Apache virtual host file
+ADD apache_default_vhost /etc/apache2/sites-enabled/magento.conf
+
+# Overwrite apache config file to use /magento2 instead of /var/www/html
+ADD apache2.conf /etc/apache2/apache2.conf
+
+RUN chown -R magento:magento /var/log/apache2

@@ -28,6 +28,9 @@ if [ ! -f $HOME/.ssh/id_rsa.pub ]; then
     fi
     ssh-keygen -t rsa -C "$MAGENTO_PROD_SSH_EMAIL" -N "" -f $HOME/.ssh/id_rsa
     echo "Copying public key to production server."
+    echo ""
+    echo "If prompted, enter ssh password for '$MAGENTO_PROD_SSH_USER' on production server."
+    echo ""
     cat $HOME/.ssh/id_rsa.pub | ssh -oStrictHostKeyChecking=no -i $HOME/.ssh/id_rsa "${MAGENTO_PROD_SSH_USER}@${MAGENTO_PROD_SSH_HOST}" "mkdir -p ~/.ssh; cat >>~/.ssh/authorized_keys"
     if [ "$?" != "0" ]; then
 	echo "Failed to copy to production host, discarding generated key."
@@ -44,7 +47,7 @@ fi
 
 # Make sure user is in group 'daemon' to avoid file permission issues.
 # Otherwise bin/magento will fail to run.
-runOnProd "sudo usermod -g daemon bitnami"
+runOnProd "sudo usermod -g daemon bitnami" 2>&1 >/dev/null
 
 # Set up the auth.json file if it does not exist.
 # We need 'composer install' to download 'vendor' directory for various
@@ -91,6 +94,34 @@ runOnProd "
         cd htdocs
 	echo Please be patient. The next step will take some time to complete.
         composer create-project --no-progress --repository-url=https://repo.magento.com/ magento/project-community-edition .
+	cat <<EOF >.gitignore
+/.buildpath
+/.cache
+/.metadata
+/.project
+/.settings
+/nbproject
+/sitemap
+/.idea
+/.gitattributes
+/atlassian*
+/app/etc/env.php
+/app/etc/vendor_path.php
+/dev/tests/*/tmp
+/dev/tests/*/etc
+/pub/media/*
+/pub/opt/*
+/pub/static/*
+/node_modules
+/var
+/vendor
+!/pub/static/.htaccess
+!/pub/media/.htaccess
+!/pub/media/downloadable/.htaccess
+!/pub/media/import/.htaccess
+!/pub/media/customer/.htaccess
+!/pub/media/theme_customization/.htaccess
+EOF
         cp ../htdocs.bak/app/etc/env.php app/etc
         cp ../htdocs.bak/app/etc/config.php app/etc
 	sudo chown -R bitnami:daemon .
@@ -121,13 +152,14 @@ runOnProd "
 	git init
 	git config user.email $USER@example.com
 	git config user.name $USER
+	git config push.default simple
 	git add .
 	git commit -m \"Initial commit\"
     fi
 "
 
 # Check out the code locally.
-if [ -d /magento2 -a ! -d /magento/.git ]; then
+if [ -d /magento2 -a ! -d /magento2/.git ]; then
     echo ==== Checking out files locally.
     git clone "ssh://${MAGENTO_PROD_SSH_USER}@${MAGENTO_PROD_SSH_HOST}/opt/bitnami/apps/magento/htdocs/.git" .
 fi

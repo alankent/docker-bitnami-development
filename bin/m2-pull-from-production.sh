@@ -1,6 +1,17 @@
 #!/bin/bash
 
 
+# Make sure things are set up (this is safe to run multiple times)
+if [ ! -f /production-initialized ]; then
+    /usr/local/bin/m2-production-initial-setup.sh
+    if [ "$?" != "0" ]; then
+	exit 1
+    fi
+    sudo touch /production-initialized
+fi
+
+
+# Load common rules.
 . /usr/local/bin/m2-common.sh
 
 
@@ -9,6 +20,7 @@ runOnProd "
     cd /opt/bitnami/apps/magento/htdocs
     git config user.email $USER@example.com
     git config user.name $USER
+    git config push.default simple
     git add .
     git commit -m \"Pulling to dev `date`\"
 "
@@ -20,9 +32,15 @@ fi
 
 echo ==== Retrieving code from production to dev.
 git pull
+mkdir -p pub/static app/etc pub/media pub/opt
 
 echo ==== Downloading any next patches or extensions.
+mv composer.json composer.json.original
+sed -e '/extra.: {/ a\
+        \"magento-deploystrategy\": \"none\",
+' <composer.json.original >composer.json
 composer install
+mv composer.json.original composer.json
 
 # If first time install, we need to do a few extra steps.
 if [ ! -f /magento2/app/etc/env.php ]; then
@@ -41,15 +59,9 @@ if [ ! -f /magento2/app/etc/env.php ]; then
     magento cron:run
     magento cron:run
 
-    # Deploy static view assets to make the start up phase faster.
-    magento setup:static-content:deploy
-
     # Set developer mode
     magento deploy:mode:set developer
 
-    # Above commands result in 'localhost' being in cached files - clear
-    # the cache to lose that setting.
-    rm -rf var/cache
 fi
 
 echo ==== Clearing development caches.
@@ -60,5 +72,9 @@ magento setup:upgrade
 
 echo ==== Switching store live locally.
 magento maintenance:disable
+
+# Above commands result in 'localhost' being in cached files - clear
+# the cache to lose that setting.
+rm -rf var/cache
 
 echo ==== Ready for use.
