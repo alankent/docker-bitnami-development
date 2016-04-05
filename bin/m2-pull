@@ -3,7 +3,7 @@
 
 # Make sure things are set up (this is safe to run multiple times)
 if [ ! -f /production-initialized ]; then
-    /usr/local/bin/m2-production-initial-setup.sh
+    /usr/local/bin/m2-setup
     if [ "$?" != "0" ]; then
 	exit 1
     fi

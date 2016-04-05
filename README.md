@@ -1,6 +1,9 @@
-# docker-bitnami-developer
-Docker support for M2 development with Bitnami VM image used for production
+# Docker Bitnami Developer
 
+Docker support for M2 development with Bitnami VM image used for production.
+(You do need to be careful to use a compatible version of this docker
+container with production. Ideally these scripts should sense the version
+of the Bitnami image and adapt accordingly.)
 
 To create the docker instance
 
@@ -17,10 +20,16 @@ Connect to the docker container
 
     docker exec -it bitnami bash
 
-Pull code from production to the local container
+Pull code from production to the local container. This takes a while to
+complete as it also downloads all composer dependencies.
 
-    m2-pull-from-production.sh
+    m2-pull
 
-After making local file changes, push to production
+After making local file changes, push to production. This takes the store
+out of production for a period of time during database schema upgrades etc.
 
-    m2-deploy-to-production.sh
+    m2-push
+
+To ssh onto the production server.
+
+    m2-ssh

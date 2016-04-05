@@ -79,7 +79,14 @@ if [ "$?" == "1" ]; then
 " | runOnProd "cat >$HTDOCS/auth.json"
 
     # Add 'bin' to PATH as well.
-    runOnProd "echo export PATH=\${PATH}:$HTDOCS/bin >> ~/.bashrc"
+    runOnProd "
+	if grep magento ~/.bashrc; then
+	    echo Magento already in PATH
+	else
+	   echo export PATH=\${PATH}:$HTDOCS/bin >> ~/.bashrc
+	   echo export umask 002 >> ~/.bashrc
+	fi
+    "
 fi
 
 
