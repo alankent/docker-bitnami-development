@@ -18,23 +18,18 @@ fi
 echo ==== Committing latest code from production.
 runOnProd "
     cd /opt/bitnami/apps/magento/htdocs
-    git config user.email $USER@example.com
-    git config user.name $USER
-    git config push.default simple
     git add .
     git commit -m \"Pulling to dev `date`\"
+    git push upstream master
 "
-
-echo ==== Switching store to maintenance mode locally.
-if [ -f bin/magento ]; then
-    magento maintenance:enable
-fi
 
 echo ==== Retrieving code from production to dev.
 git pull
 mkdir -p pub/static app/etc pub/media pub/opt
 
 echo ==== Downloading any next patches or extensions.
+# Tell composer not to override local changes.
+# Eventually this step will not be required.
 mv composer.json composer.json.original
 sed -e '/extra.: {/ a\
         \"magento-deploystrategy\": \"none\",
@@ -55,10 +50,6 @@ if [ ! -f /magento2/app/etc/env.php ]; then
 	--admin-user=admin --admin-password=admin123 --language=en_US \
 	--currency=USD --timezone=America/Chicago --use-rewrites=1
 
-    # Trigger index rebuilds to reduce warnings about old indexes at startup.
-    magento cron:run
-    magento cron:run
-
     # Set developer mode
     magento deploy:mode:set developer
 
@@ -69,6 +60,9 @@ magento cache:clean
 
 echo ==== Upgrade database schema to new schema.
 magento setup:upgrade
+
+echo ==== Rebuilding indexes to reduce warnings about old indexes at startup.
+magento indexer:reindex
 
 echo ==== Switching store live locally.
 magento maintenance:disable

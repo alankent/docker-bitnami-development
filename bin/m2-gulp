@@ -10,6 +10,7 @@ rm -rf /magento/var/{cache,page_cache,session,view_preprocessed}
 magento cache:disable config
 
 # Redeploy to pick up new files, compile styles, watch for file changes.
+# (The 'docs' rule in particular is optional.)
 cd /gulp
 gulp deploy
 gulp styles

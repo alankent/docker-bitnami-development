@@ -1,6 +1,11 @@
 #!/bin/bash
 
 
+# Bitnami Magento 2 web server doc root.
+HTDOCS=/opt/bitnami/apps/magento/htdocs
+GITREPO=/opt/bitnami/apps/magento/git
+
+
 # Check environment variables are set up to connect to prodution server.
 if [ "$MAGENTO_PROD_SSH_HOST" == "" -o "$MAGENTO_PROD_SSH_USER" == "" ]; then
     echo "This script uses the following environment variables."
@@ -45,15 +50,11 @@ fi
 . /usr/local/bin/m2-common.sh
 
 
-# Make sure user is in group 'daemon' to avoid file permission issues.
-# Otherwise bin/magento will fail to run.
-runOnProd "sudo usermod -g daemon bitnami" 2>&1 >/dev/null
-
 # Set up the auth.json file if it does not exist.
 # We need 'composer install' to download 'vendor' directory for various
 # magento commands to work (like put store into maintenance mode).
 runOnProd "
-    if [ ! -f /opt/bitnami/apps/magento/htdocs/auth.json ]; then
+    if [ ! -f $HTDOCS/auth.json ]; then
 	exit 1
     fi
 "
@@ -75,67 +76,16 @@ if [ "$?" == "1" ]; then
         }
     }
 }
-" > ~/.composer/auth.json
-    cat ~/.composer/auth.json | runOnProd "mkdir -p ~/.composer; cat >~/.composer/auth.json"
+" | runOnProd "cat >$HTDOCS/auth.json"
+
+    # Add 'bin' to PATH as well.
+    runOnProd "echo export PATH=\${PATH}:$HTDOCS/bin >> ~/.bashrc"
 fi
 
-# Bitnami currently is not using version from "composer create-project"
-# which means extensions won't be able to install. So if old style, save
-# away code and rebuild the site via composer.
-runOnProd "
-    if grep -q magento/module-backup /opt/bitnami/apps/magento/htdocs/composer.json ; then
-        echo ==== Magento not installed via Composer - re-installing.
-	set -x
-	sudo composer self-update
-        cd /opt/bitnami/apps/magento
-        sudo mv htdocs htdocs.bak
-        sudo mkdir htdocs
-	sudo chown bitnami:daemon htdocs
-        cd htdocs
-	echo Please be patient. The next step will take some time to complete.
-        composer create-project --no-progress --repository-url=https://repo.magento.com/ magento/project-community-edition .
-	cat <<EOF >.gitignore
-/.buildpath
-/.cache
-/.metadata
-/.project
-/.settings
-/nbproject
-/sitemap
-/.idea
-/.gitattributes
-/atlassian*
-/app/etc/env.php
-/app/etc/vendor_path.php
-/dev/tests/*/tmp
-/dev/tests/*/etc
-/pub/media/*
-/pub/opt/*
-/pub/static/*
-/node_modules
-/var
-/vendor
-!/pub/static/.htaccess
-!/pub/media/.htaccess
-!/pub/media/downloadable/.htaccess
-!/pub/media/import/.htaccess
-!/pub/media/customer/.htaccess
-!/pub/media/theme_customization/.htaccess
-EOF
-        cp ../htdocs.bak/app/etc/env.php app/etc
-        cp ../htdocs.bak/app/etc/config.php app/etc
-	sudo chown -R bitnami:daemon .
-	sudo chmod +x bin/magento
-	sudo chmod -R g+w var pub/static
-	sudo rm -rf var/{cache,generation,page_cache}/*
-    fi
-"
 
 # Install GIT if not already present.
 runOnProd "
-    if [ -f /usr/bin/git ]; then
-	echo ==== GIT is already installed.
-    else
+    if [ ! -f /usr/bin/git ]; then
 	echo ==== Installing GIT.
 	sudo apt-get update
 	sudo apt-get install -y git
@@ -144,23 +94,85 @@ runOnProd "
 
 # Commit into GIT if not done so already.
 runOnProd "
-    cd /opt/bitnami/apps/magento/htdocs
-    if [ -d .git ]; then
-        echo ==== Magento already committed to GIT.
-    else
+    if [ ! -d $HTDOCS/.git ]; then
         echo ==== Committing Magento code to GIT.
+	sudo mkdir -p $GITREPO
+	sudo chown bitnami:daemon $GITREPO
+	cd $GITREPO
+	git --bare init --shared magento.git
+
+        cd $HTDOCS
+	sudo chmod g+s var pub
+	# sed -i -e \"/^\\/\\*\\.\\*/d\" -e \"/^\\/bin/d\" .gitignore
+	cat <<EOF > .gitignore
+/.buildpath
+/.cache
+/.metadata
+/.project
+/.settings
+atlassian*
+/nbproject
+/sitemap
+/.idea
+/.gitattributes
+/app/config_sandbox
+/app/etc/config.php
+/app/etc/env.php
+/app/code/Magento/TestModule*
+/lib/internal/flex/uploader/.actionScriptProperties
+/lib/internal/flex/uploader/.flexProperties
+/lib/internal/flex/uploader/.project
+/lib/internal/flex/uploader/.settings
+/lib/internal/flex/varien/.actionScriptProperties
+/lib/internal/flex/varien/.flexLibProperties
+/lib/internal/flex/varien/.project
+/lib/internal/flex/varien/.settings
+/node_modules
+/.grunt
+
+/pub/media/*.*
+!/pub/media/.htaccess
+/pub/media/catalog/*
+!/pub/media/catalog/.htaccess
+/pub/media/customer/*
+!/pub/media/customer/.htaccess
+/pub/media/downloadable/*
+!/pub/media/downloadable/.htaccess
+/pub/media/import/*
+!/pub/media/import/.htaccess
+/pub/media/theme/*
+/pub/media/theme_customization/*
+!/pub/media/theme_customization/.htaccess
+/pub/media/wysiwyg/*
+!/pub/media/wysiwyg/.htaccess
+/pub/media/tmp/*
+!/pub/media/tmp/.htaccess
+/pub/media/captcha/*
+/pub/static/*
+!/pub/static/.htaccess
+
+/var/*
+!/var/.htaccess
+/vendor
+!/vendor/.htaccess
+EOF
 	git init
 	git config user.email $USER@example.com
 	git config user.name $USER
 	git config push.default simple
-	git add .
+	git add -A
 	git commit -m \"Initial commit\"
+	git remote add upstream $GITREPO/magento.git
+	git push upstream master
     fi
 "
 
 # Check out the code locally.
 if [ -d /magento2 -a ! -d /magento2/.git ]; then
     echo ==== Checking out files locally.
-    git clone "ssh://${MAGENTO_PROD_SSH_USER}@${MAGENTO_PROD_SSH_HOST}/opt/bitnami/apps/magento/htdocs/.git" .
+    git clone "ssh://${MAGENTO_PROD_SSH_USER}@${MAGENTO_PROD_SSH_HOST}$GITREPO/magento.git" .
+    git config user.email $USER@example.com
+    git config user.name $USER
+    git config push.default simple
 fi
 
