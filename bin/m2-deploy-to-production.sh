@@ -35,7 +35,7 @@ runOnProd "
     cd $HTDOCS
     mv composer.json composer.json.original
     sed <composer.json.original >composer.json -e \"/extra.:/ a\\
-        \"magento-deploystrategy\": \"none\",
+        \\\"magento-deploystrategy\\\": \\\"none\\\",
 \"
     composer install
     mv composer.json.original composer.json

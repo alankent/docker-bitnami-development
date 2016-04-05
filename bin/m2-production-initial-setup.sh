@@ -102,7 +102,9 @@ runOnProd "
 	git --bare init --shared magento.git
 
         cd $HTDOCS
-	sudo chmod g+s var pub
+	sudo usermod -a -G daemon bitnami
+	sudo chmod -R g+w .
+	sudo chmod -R g+s var pub
 	# sed -i -e \"/^\\/\\*\\.\\*/d\" -e \"/^\\/bin/d\" .gitignore
 	cat <<EOF > .gitignore
 /.buildpath
