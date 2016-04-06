@@ -41,24 +41,20 @@ runOnProd "
 \"
     composer install
     mv composer.json.original composer.json
+    sudo chown -R daemon:daemon var pub/static
 "
 
 echo ==== Update the database schema.
 runOnProd "
     cd $HTDOCS
-    sudo chown -R daemon:daemon var pub/static
-    sudo chmod -R g+w var pub/static
     sudo -u daemon bin/magento setup:upgrade
 "
 
 echo ==== Switching production mode, triggering compile and content deployment.
 runOnProd "
     cd $HTDOCS
-    sudo chown -R daemon:daemon var pub/static
-    sudo chmod -R g+w var pub/static
     sudo -u daemon bin/magento deploy:mode:set production
-    sudo chown -R daemon:daemon var pub/static
-    sudo chmod -R g+w var pub/static
+    sudo chmod -R g+ws var pub/static
 "
 
 echo ==== Turning off bitnami banner
