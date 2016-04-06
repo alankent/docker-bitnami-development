@@ -22,6 +22,9 @@ EOF
 
 # Start up Samba
 if [ "$SAMBA_START" == "1" ]; then
+    echo Starting Samba.
+    echo Mount on Windows using
+    echo '  NET USE M: \\192.168.99.100\magento2 magento /USER:magento'
     service samba start
 fi
 
