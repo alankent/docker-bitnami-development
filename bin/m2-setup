@@ -177,7 +177,7 @@ EOF
 "
 
 # Check out the code locally.
-if [ -d /magento2 -a ! -d /magento2/.git ]; then
+if [ -d "$MAGENTO_HOME" -a ! -d "$MAGENTO_HOME/.git" ]; then
     echo ==== Checking out files locally.
     git clone "ssh://${MAGENTO_PROD_SSH_USER}@${MAGENTO_PROD_SSH_HOST}$GITREPO/magento.git" .
     git config user.email $USER@example.com

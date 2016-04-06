@@ -72,11 +72,14 @@ if [ "$?" != "0" ]; then
 fi
 
 
-# We can only run inside docker container with /magento2 present.
-if [ ! -d /magento2 ]; then
-    echo "/magento2 not found, aborting."
+# We can only run inside container with /magento2 present.
+if [ "$MAGENTO_HOME" == "" ]; then
+    export MAGENTO_HOME=/magento2
+fi
+if [ ! -d "$MAGENTO_HOME" ]; then
+    echo "Magento home directory '$MAGENTO_HOME' not found, aborting."
     exit 1
 fi
-cd /magento2
+cd $MAGENTO_HOME
 
 
