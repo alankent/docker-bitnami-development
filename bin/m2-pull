@@ -18,6 +18,7 @@ fi
 echo ==== Committing latest code from production.
 runOnProd "
     cd /opt/bitnami/apps/magento/htdocs
+    sudo chown bitnami:daemon pub pub/static pub/static/.htaccess
     git add .
     git commit -m \"Pulling to dev `date`\"
     git push upstream master

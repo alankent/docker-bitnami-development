@@ -28,6 +28,10 @@ function checkEnvironmentVariablesSet () {
 	exit 1
     fi
 
+    if [ "$MAGENTO_PROD_SSH_IDENTITY" == "" ]; then
+        MAGENTO_PROD_SSH_IDENTITY=~/.ssh/id_bitnami
+    fi
+
     if [ "$MAGENTO_PROD_SSH_PORT" == "" ]; then
 	MAGENTO_PROD_SSH_PORT=22
     fi

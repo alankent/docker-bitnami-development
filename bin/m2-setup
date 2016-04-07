@@ -13,7 +13,7 @@ if [ "$MAGENTO_PROD_SSH_HOST" == "" -o "$MAGENTO_PROD_SSH_USER" == "" ]; then
     echo "  MAGENTO_PROD_SSH_USER - username to connect with on production host"
     echo "  MAGENTO_PROD_SSH_HOST - hostname or IP address of production host"
     echo "  MAGENTO_PROD_SSH_PORT (optional) - SSH port number to use if not 22"
-    echo "  MAGENTO_PROD_SSH_IDENTITY (optional) - SSH identity file if not ~/.ssh/id_rsa"
+    echo "  MAGENTO_PROD_SSH_IDENTITY (optional) - SSH identity file if not ~/.ssh/id_bitnami"
     echo "  MAGENTO_PROD_SSH_EMAIL (optional) - Email address for ssh key generation"
     echo ""
     echo "You must set at least the first two variables before running this script."
@@ -25,23 +25,30 @@ if [ "$MAGENTO_PROD_SSH_HOST" == "" -o "$MAGENTO_PROD_SSH_USER" == "" ]; then
 fi
 
 # Generate a key if we don't have one already.
-if [ ! -f $HOME/.ssh/id_rsa.pub ]; then
+if [ ! -f $HOME/.ssh/id_bitnami.pub ]; then
     echo "==== No existing SSH key found, generating new key."
     if [ "$MAGENTO_PROD_SSH_EMAIL" == "" ]; then
 	echo -n "Enter your email address: "
 	read MAGENTO_PROD_SSH_EMAIL
     fi
-    ssh-keygen -t rsa -C "$MAGENTO_PROD_SSH_EMAIL" -N "" -f $HOME/.ssh/id_rsa
+    ssh-keygen -t rsa -C "$MAGENTO_PROD_SSH_EMAIL" -N "" -f $HOME/.ssh/id_bitnami
     echo "Copying public key to production server."
     echo ""
     echo "If prompted, enter ssh password for '$MAGENTO_PROD_SSH_USER' on production server."
     echo ""
-    cat $HOME/.ssh/id_rsa.pub | ssh -oStrictHostKeyChecking=no -i $HOME/.ssh/id_rsa "${MAGENTO_PROD_SSH_USER}@${MAGENTO_PROD_SSH_HOST}" "mkdir -p ~/.ssh; cat >>~/.ssh/authorized_keys"
+    cat $HOME/.ssh/id_bitnami.pub | ssh -oStrictHostKeyChecking=no -i $HOME/.ssh/id_bitnami "${MAGENTO_PROD_SSH_USER}@${MAGENTO_PROD_SSH_HOST}" "mkdir -p ~/.ssh; cat >>~/.ssh/authorized_keys"
     if [ "$?" != "0" ]; then
 	echo "Failed to copy to production host, discarding generated key."
-	rm $HOME/.ssh/id_rsa $HOME/.ssh/id_rsa.pub
+	rm $HOME/.ssh/id_bitnami $HOME/.ssh/id_bitnami.pub
 	exit 1
     fi
+    cat <<EOF >>$HOME/.ssh/config
+host $MAGENTO_PROD_SSH_HOST
+ HostName $MAGENTO_PROD_SSH_HOST
+  IdentityFile ~/.ssh/id_bitnami
+   User git
+EOF
+    chmod 400 ~/.ssh/config
     echo "SSH copied to production. Continuing with installation."
     sleep 2
 fi
@@ -112,6 +119,7 @@ runOnProd "
 	sudo usermod -a -G daemon bitnami
 	sudo chmod -R g+w .
 	sudo chmod -R g+s var pub
+	sudo chown bitname:daemon pub pub/static pub/static/.htaccess
 	# sed -i -e \"/^\\/\\*\\.\\*/d\" -e \"/^\\/bin/d\" .gitignore
 	cat <<EOF > .gitignore
 /.buildpath
