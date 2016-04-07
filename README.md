@@ -1,8 +1,10 @@
-# Docker Bitnami Developer
+# Bitnami Development
 
 WARNING: These files may get out of date with the latest GoDaddy builds.
 There is no formal process where I test these scripts every time GoDaddy
 releases a new base image.
+
+## Docker based development
 
 Docker support for M2 development with Bitnami VM image used for production.
 (You do need to be careful to use a compatible version of this docker
@@ -38,3 +40,19 @@ out of production for a period of time during database schema upgrades etc.
 To ssh onto the production server.
 
     m2-ssh
+
+## Codeanywhere.com Support
+
+If you create a Magento 2 development environment on Codeanywhere.com, you
+can use the scripts in this repository to also control your Bitnami based
+cloud server.
+
+To install the m2-push, m2-pull, and m2-ssh commands, run the following
+command from the Codeanywhere.com shell prompt and follow the instructions.
+
+    curl https://raw.githubusercontent.com/alankent/docker-bitnami-development/master/install.codeanywhere.sh | sh
+
+## Other Cloud Servers
+
+The scripts provided here are still a work in progress, but may be a good
+starting point for other cloud based servers.
