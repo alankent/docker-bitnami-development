@@ -54,6 +54,7 @@ echo ==== Switching production mode, triggering compile and content deployment.
 runOnProd "
     cd $HTDOCS
     sudo -u daemon bin/magento deploy:mode:set production
+    sudo -u daemon bin/magento maintenance:disable
     sudo chmod -R g+ws var pub/static
 "
 

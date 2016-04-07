@@ -90,12 +90,12 @@ if [ "$?" == "1" ]; then
 	if grep magento ~/.bashrc; then
 	    echo Magento already in PATH
 	else
-	   echo export PATH=\${PATH}:$HTDOCS/bin >> ~/.bashrc
-	   echo export umask 002 >> ~/.bashrc
+	    echo export PATH=\${PATH}:$HTDOCS/bin >> ~/.bashrc
+	    echo export umask 002 >> ~/.bashrc
 	fi
     "
-fi
 
+fi
 
 # Install GIT if not already present.
 runOnProd "
@@ -193,3 +193,16 @@ if [ -d "$MAGENTO_HOME" -a ! -d "$MAGENTO_HOME/.git" ]; then
     git config push.default simple
 fi
 
+# .htaccess file was removed at one stage by Bitnami. We need them.
+# (Eventually this should be deleted as unnecessary.)
+FILESIZE=1
+if [ -f .htaccess ]; then
+    FILESIZE=$(wc -l < .htaccess)
+fi
+if [ "$FILESIZE" == 1 ]; then
+    echo ==== Recovering .htaccess from github
+    curl -s -O https://raw.githubusercontent.com/magento/magento2/develop/.htaccess
+    cd pub/static
+    curl -s -O https://raw.githubusercontent.com/magento/magento2/develop/pub/static/.htaccess 
+    cd ../..
+fi
