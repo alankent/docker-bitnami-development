@@ -1,6 +1,9 @@
 #!/bin/bash
 
 
+GIT=/usr/bin/git
+
+
 # Make sure things are set up (this is safe to run multiple times)
 if [ ! -f /production-initialized ]; then
     /usr/local/bin/m2-setup
@@ -19,9 +22,9 @@ echo ==== Committing latest code from production.
 runOnProd "
     cd /opt/bitnami/apps/magento/htdocs
     sudo chown bitnami:daemon pub pub/static pub/static/.htaccess
-    git add .
-    git commit -m \"Pulling to dev `date`\"
-    git push upstream master
+    $GIT add .
+    $GIT commit -m \"Pulling to dev `date`\"
+    $GIT push upstream master
 "
 
 echo ==== Retrieving code from production to dev.

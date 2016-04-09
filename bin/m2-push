@@ -5,12 +5,14 @@
 
 
 HTDOCS=/opt/bitnami/apps/magento/htdocs
+GIT=/usr/bin/git
 
 
 echo ==== Committing latest code in development.
 git config user.email "$USER@example.com"
 git config user.name "$USER"
 git config push.default simple
+#git config remote.origin.receivepack "git receive-pack"
 git add .
 git commit -m "Deployment to production `date`"
 git push origin master
@@ -24,7 +26,7 @@ runOnProd "
 echo ==== Merge development changes on production.
 runOnProd "
     cd $HTDOCS
-    git pull upstream master
+    $GIT pull upstream master
     sudo chgrp -R daemon .
     sudo chmod -R g+w .
 "

@@ -4,6 +4,7 @@
 # Bitnami Magento 2 web server doc root.
 HTDOCS=/opt/bitnami/apps/magento/htdocs
 GITREPO=/opt/bitnami/apps/magento/git
+GIT=/usr/bin/git
 
 
 # Check environment variables are set up to connect to prodution server.
@@ -57,6 +58,16 @@ fi
 . /usr/local/bin/m2-common.sh
 
 
+# I don't understand, but the user id changes after a while.
+# If we jump in too early, the file permissions won't work.
+# So wait until the user id flip occurs.
+echo "==== Waiting for UID to change to 'bitnami'."
+while runOnProd "id" | tee /dev/tty | grep -q -v bitnami; do
+    echo Not bitnami, retrying...
+    sleep 2
+done
+
+
 # Set up the auth.json file if it does not exist.
 # We need 'composer install' to download 'vendor' directory for various
 # magento commands to work (like put store into maintenance mode).
@@ -91,18 +102,23 @@ if [ "$?" == "1" ]; then
 	    echo Magento already in PATH
 	else
 	    echo export PATH=\${PATH}:$HTDOCS/bin >> ~/.bashrc
-	    echo export umask 002 >> ~/.bashrc
+	    echo umask 002 >> ~/.bashrc
 	fi
     "
 
 fi
 
+
 # Install GIT if not already present.
 runOnProd "
-    if [ ! -f /usr/bin/git ]; then
+    if [ ! -f $GIT ]; then
 	echo ==== Installing GIT.
 	sudo apt-get update
 	sudo apt-get install -y git
+	if [ ! -f $GIT ]; then
+	    echo FAILED to install GIT.
+	    exit 1
+	fi
     fi
 "
 
@@ -113,13 +129,14 @@ runOnProd "
 	sudo mkdir -p $GITREPO
 	sudo chown bitnami:daemon $GITREPO
 	cd $GITREPO
-	git --bare init --shared magento.git
+	$GIT --bare init --shared magento.git
+	#$GIT config remote.origin.receivepack \"git receive-pack\"
 
         cd $HTDOCS
 	sudo usermod -a -G daemon bitnami
 	sudo chmod -R g+w .
 	sudo chmod -R g+s var pub
-	sudo chown bitname:daemon pub pub/static pub/static/.htaccess
+	sudo chown bitnami:daemon pub pub/static pub/static/.htaccess
 	# sed -i -e \"/^\\/\\*\\.\\*/d\" -e \"/^\\/bin/d\" .gitignore
 	cat <<EOF > .gitignore
 /.buildpath
@@ -173,14 +190,15 @@ atlassian*
 /vendor
 !/vendor/.htaccess
 EOF
-	git init
-	git config user.email $USER@example.com
-	git config user.name $USER
-	git config push.default simple
-	git add -A
-	git commit -m \"Initial commit\"
-	git remote add upstream $GITREPO/magento.git
-	git push upstream master
+	$GIT init
+	$GIT config user.email $USER@example.com
+	$GIT config user.name $USER
+	$GIT config push.default simple
+	#$GIT config remote.origin.receivepack \"git receive-pack\"
+	$GIT add -A
+	$GIT commit -m \"Initial commit\"
+	$GIT remote add upstream $GITREPO/magento.git
+	$GIT push upstream master
     fi
 "
 
@@ -191,7 +209,9 @@ if [ -d "$MAGENTO_HOME" -a ! -d "$MAGENTO_HOME/.git" ]; then
     git config user.email $USER@example.com
     git config user.name $USER
     git config push.default simple
+    #git config remote.origin.receivepack "git receive-pack"
 fi
+
 
 # .htaccess file was removed at one stage by Bitnami. We need them.
 # (Eventually this should be deleted as unnecessary.)

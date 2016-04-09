@@ -1,4 +1,4 @@
-FROM php:7.0-apache
+FROM php:7.0.4-apache
 MAINTAINER Alan Kent <alan.james.kent@gmail.com>
 
 
