@@ -40,6 +40,7 @@ sed -e '/extra.: {/ a\
 ' <composer.json.original >composer.json
 composer install
 mv composer.json.original composer.json
+(cd update; composer install; cd ..)
 
 # Default DB connection details
 if [ "$MAGENTO_DB_USER" == "" ]; then
